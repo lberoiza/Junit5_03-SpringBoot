@@ -21,7 +21,7 @@ public class AccountTestDataBuilder {
 
   private AccountTestDataBuilder() {}
 
-  private AccountTestDataBuilder random() {
+  public static AccountTestDataBuilder random() {
     return new AccountTestDataBuilder();
   }
 

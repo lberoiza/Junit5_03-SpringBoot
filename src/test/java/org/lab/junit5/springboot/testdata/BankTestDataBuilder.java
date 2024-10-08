@@ -19,7 +19,7 @@ public class BankTestDataBuilder {
 
   private BankTestDataBuilder() {}
 
-  private BankTestDataBuilder random() {
+  public static BankTestDataBuilder random() {
     return new BankTestDataBuilder();
   }
 
