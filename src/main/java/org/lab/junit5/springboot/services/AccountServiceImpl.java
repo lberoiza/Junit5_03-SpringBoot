@@ -21,7 +21,7 @@ public class AccountServiceImpl implements AccountService {
   }
 
   @Override
-  public Account createAccount(Account account) {
+  public Account save(Account account) {
     return accountRepository.save(account);
   }
 
@@ -38,13 +38,14 @@ public class AccountServiceImpl implements AccountService {
   }
 
   @Override
-  public void transfer(Long fromAccountId, Long toAccountId, BigDecimal amount) {
+  public void transfer(Long fromAccountId, Long toAccountId, BigDecimal amount, Long bankId) {
     Account fromAccount = findAccountById(fromAccountId);
     Account toAccount = findAccountById(toAccountId);
     fromAccount.withdraw(amount);
     accountRepository.save(fromAccount);
     toAccount.deposit(amount);
     accountRepository.save(toAccount);
+    bankService.updateTotalOfTransfers(bankId);
   }
 
 

@@ -9,5 +9,5 @@ public interface BankRepository {
 
   Optional<Bank> findById(Long id);
 
-  void update(Bank bank);
+  Bank save(Bank bank);
 }

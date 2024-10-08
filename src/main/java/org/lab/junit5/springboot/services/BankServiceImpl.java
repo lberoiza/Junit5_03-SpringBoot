@@ -14,4 +14,21 @@ public class BankServiceImpl implements BankService {
     return bankRepository.findById(bankId)
         .orElseThrow(() -> new BankNotFoundByIdException(bankId));
   }
+
+  @Override
+  public Bank save(Bank bank) {
+    return bankRepository.save(bank);
+  }
+
+  @Override
+  public Bank updateTotalOfTransfers(Long bankId) {
+    Bank bank = findBankById(bankId);
+    return updateTotalOfTransfers(bank);
+  }
+
+  @Override
+  public Bank updateTotalOfTransfers(Bank bank) {
+    bank.setTotalOfTransfers(bank.getTotalOfTransfers() + 1);
+    return save(bank);
+  }
 }
