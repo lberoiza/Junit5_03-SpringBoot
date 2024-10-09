@@ -4,7 +4,9 @@ import lombok.AllArgsConstructor;
 import org.lab.junit5.springboot.exceptions.BankNotFoundByIdException;
 import org.lab.junit5.springboot.models.Bank;
 import org.lab.junit5.springboot.repositories.BankRepository;
+import org.springframework.stereotype.Service;
 
+@Service
 @AllArgsConstructor
 public class BankServiceImpl implements BankService {
 

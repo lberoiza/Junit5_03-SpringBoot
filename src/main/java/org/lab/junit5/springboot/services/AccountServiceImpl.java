@@ -5,7 +5,9 @@ import lombok.AllArgsConstructor;
 import org.lab.junit5.springboot.exceptions.AccountNotFoundByIdException;
 import org.lab.junit5.springboot.models.Account;
 import org.lab.junit5.springboot.repositories.AccountRepository;
+import org.springframework.stereotype.Service;
 
+@Service
 @AllArgsConstructor
 public class AccountServiceImpl implements AccountService {
 

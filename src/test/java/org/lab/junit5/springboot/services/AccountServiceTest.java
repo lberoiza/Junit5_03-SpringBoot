@@ -18,6 +18,7 @@ import org.lab.junit5.springboot.repositories.BankRepository;
 import org.lab.junit5.springboot.testdata.AccountTestDataBuilder;
 import org.lab.junit5.springboot.testdata.BankTestDataBuilder;
 import org.mockito.InOrder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
@@ -27,8 +28,8 @@ class AccountServiceTest {
   @MockBean private AccountRepository accountRepository;
   @MockBean private BankRepository bankRepository;
 
-  private BankService bankService;
-  private AccountService accountService;
+  @Autowired private BankService bankService;
+  @Autowired private AccountService accountService;
 
   private Bank bank;
   private Account sourceAccount;
@@ -36,9 +37,6 @@ class AccountServiceTest {
 
   @BeforeEach
   void setUp() {
-    bankService = new BankServiceImpl(bankRepository);
-    accountService = new AccountServiceImpl(accountRepository, bankService);
-
     bank = BankTestDataBuilder.random().build();
 
     sourceAccount = AccountTestDataBuilder.random().build();
