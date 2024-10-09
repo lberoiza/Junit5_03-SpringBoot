@@ -11,8 +11,7 @@ public class BankServiceImpl implements BankService {
   private final BankRepository bankRepository;
 
   public Bank findBankById(Long bankId) {
-    return bankRepository.findById(bankId)
-        .orElseThrow(() -> new BankNotFoundByIdException(bankId));
+    return bankRepository.findById(bankId).orElseThrow(() -> new BankNotFoundByIdException(bankId));
   }
 
   @Override
@@ -21,14 +20,19 @@ public class BankServiceImpl implements BankService {
   }
 
   @Override
-  public Bank updateTotalOfTransfers(Long bankId) {
+  public Bank updateTotalOfTransactions(Long bankId) {
     Bank bank = findBankById(bankId);
-    return updateTotalOfTransfers(bank);
+    return updateTotalOfTransactions(bank);
   }
 
   @Override
-  public Bank updateTotalOfTransfers(Bank bank) {
-    bank.setTotalOfTransfers(bank.getTotalOfTransfers() + 1);
+  public Bank updateTotalOfTransactions(Bank bank) {
+    bank.setTotalOfTransactions(bank.getTotalOfTransactions() + 1);
     return save(bank);
+  }
+
+  @Override
+  public int getTotalOfTransactions(Long bankId) {
+    return findBankById(bankId).getTotalOfTransactions();
   }
 }

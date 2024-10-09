@@ -15,7 +15,7 @@ public class BankTestDataBuilder {
   private Long id = faker.number().randomNumber();
   private String name = "Bank: %s".formatted(faker.finance().creditCard());
   private String owner = faker.name().fullName();
-  private int totalOfTransfers =faker.number().numberBetween(0, 100);
+  private int totalOfTransfers = faker.number().numberBetween(0, 100);
 
   private BankTestDataBuilder() {}
 
@@ -24,9 +24,6 @@ public class BankTestDataBuilder {
   }
 
   public Bank build() {
-    return new Bank()
-        .setId(id)
-        .setName(name)
-        .setTotalOfTransfers(totalOfTransfers);
+    return new Bank().setId(id).setName(name).setTotalOfTransactions(totalOfTransfers);
   }
 }

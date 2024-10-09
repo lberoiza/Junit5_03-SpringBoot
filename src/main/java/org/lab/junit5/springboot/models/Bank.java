@@ -8,5 +8,5 @@ import lombok.experimental.Accessors;
 public class Bank {
   private Long id;
   private String name;
-  private int totalOfTransfers;
+  private int totalOfTransactions;
 }

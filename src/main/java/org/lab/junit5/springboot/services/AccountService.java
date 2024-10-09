@@ -7,8 +7,10 @@ import java.math.BigDecimal;
 public interface AccountService {
 
   Account findAccountById(Long accountId);
+
   Account save(Account account);
-  int getTotalOfTransactions(Long bankId);
+
   BigDecimal getBalance(Long accountId);
+
   void transfer(Long fromAccountId, Long toAccountId, BigDecimal amount, Long bankId);
 }
