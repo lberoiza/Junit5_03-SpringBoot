@@ -1,7 +1,7 @@
 package org.lab.junit5.springboot.services;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -14,6 +14,7 @@ import org.lab.junit5.springboot.repositories.AccountRepository;
 import org.lab.junit5.springboot.repositories.BankRepository;
 import org.lab.junit5.springboot.testdata.AccountTestDataBuilder;
 import org.lab.junit5.springboot.testdata.BankTestDataBuilder;
+import org.mockito.InOrder;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
@@ -43,33 +44,40 @@ class AccountServiceTest {
 
   @Test
   void test_transfer_money_then_ok() {
-    // Create Test Data
-    int initialTotalOfTransactions = bank.getTotalOfTransactions();
-
     // Prepare Mocks
     prepareMocksForTransfer();
 
-    // Get initial balances and check them
+    // get initial total of transactions - bank findById
+    int initialTotalOfTransactions = bankService.getTotalOfTransactions(bank.getId());
+
+    // Get initial balances and check them -  Account findById (1 time for source and 1 time for
+    // target)
     BigDecimal initialSourceAccountBalance = accountService.getBalance(sourceAccount.getId());
     assertThat(sourceAccount.getBalance()).isEqualTo(initialSourceAccountBalance);
     BigDecimal initialTargetAccountBalance = accountService.getBalance(targetAccount.getId());
     assertThat(targetAccount.getBalance()).isEqualTo(initialTargetAccountBalance);
 
-    // Transfer Money
+    // Transfer Money - Account findById (1 time for source, 1 time for target and 1 time for bank)
     accountService.transfer(
         sourceAccount.getId(), targetAccount.getId(), initialSourceAccountBalance, bank.getId());
 
     // Check Results
-    // Account 1 has 0 balance
+    // Account 1 has 0 balance - account findById (1 time for source)
     assertBalanceAfterTransaction(sourceAccount.getId(), BigDecimal.ZERO);
 
-    // Account 2 has the sum of the initial balances
+    // Account 2 has the sum of the initial balances - account findById (1 time for target)
     BigDecimal expectedTargetAccountBalance =
         initialTargetAccountBalance.add(initialSourceAccountBalance);
     assertBalanceAfterTransaction(targetAccount.getId(), expectedTargetAccountBalance);
 
-    // Bank has one more transfer
+    // Bank has one more transfer - bank findById (1 time for bank)
     assertBankTotalOfTransactionsAfterTransaction(initialTotalOfTransactions + 1);
+
+    // Verify Mocks total of executions
+    verifyMocksAfterTransaction();
+
+    // Verify Order of Mock executions
+    verifyOrderOfMocksExecution();
   }
 
   private void prepareMocksForTransfer() {
@@ -88,5 +96,35 @@ class AccountServiceTest {
   private void assertBankTotalOfTransactionsAfterTransaction(int expectedTotalOfTransactions) {
     int totalOfTransactions = bankService.getTotalOfTransactions(bank.getId());
     assertThat(totalOfTransactions).isEqualTo(expectedTotalOfTransactions);
+  }
+
+  private void verifyMocksAfterTransaction() {
+    verify(bankRepository, times(3)).findById(bank.getId());
+    verify(accountRepository, times(3)).findById(sourceAccount.getId());
+    verify(accountRepository, times(3)).findById(targetAccount.getId());
+
+    verify(accountRepository, times(1)).save(sourceAccount);
+    verify(accountRepository, times(1)).save(targetAccount);
+  }
+
+  private void verifyOrderOfMocksExecution() {
+    InOrder inOrder = inOrder(bankRepository, accountRepository);
+
+    // get initial values of transactions and balances
+    inOrder.verify(bankRepository).findById(bank.getId());
+    inOrder.verify(accountRepository).findById(sourceAccount.getId());
+    inOrder.verify(accountRepository).findById(targetAccount.getId());
+
+    // transfer money
+    inOrder.verify(accountRepository).findById(sourceAccount.getId());
+    inOrder.verify(accountRepository).findById(targetAccount.getId());
+    inOrder.verify(accountRepository).save(sourceAccount);
+    inOrder.verify(accountRepository).save(targetAccount);
+    inOrder.verify(bankRepository).save(bank);
+
+    // assert of final transactions and balances
+    inOrder.verify(accountRepository).findById(sourceAccount.getId());
+    inOrder.verify(accountRepository).findById(targetAccount.getId());
+    inOrder.verify(bankRepository).findById(bank.getId());
   }
 }
