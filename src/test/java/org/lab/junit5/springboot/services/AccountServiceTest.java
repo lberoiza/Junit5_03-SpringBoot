@@ -100,6 +100,9 @@ class AccountServiceTest {
     verify(bankRepository, times(2)).findById(bank.getId());
     verify(accountRepository, times(3)).findById(sourceAccount.getId());
     verify(accountRepository, times(3)).findById(targetAccount.getId());
+
+    verify(accountRepository, never()).save(sourceAccount);
+    verify(accountRepository, never()).save(targetAccount);
   }
 
   private void verifyOrderOfMocksExecutionAfterFailedTransfer() {
