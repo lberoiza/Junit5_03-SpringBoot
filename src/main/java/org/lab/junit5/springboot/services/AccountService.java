@@ -8,6 +8,8 @@ public interface AccountService {
 
   Account findAccountById(Long accountId);
 
+  Account findAccountByAccountNumber(String accountNumber);
+
   Account save(Account account);
 
   BigDecimal getBalance(Long accountId);
