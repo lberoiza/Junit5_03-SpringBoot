@@ -1,6 +1,6 @@
 package org.lab.junit5.springboot.models.dtos;
 
-import org.lab.junit5.springboot.models.entitites.Account;
+import java.math.BigDecimal;
 
 public record TransferDetailDTO(
-    Account sourceAccount, Account targetAccount, Long bankId, String amount) {}
+    Long sourceAccountId, Long targetAccountId, Long bankId, BigDecimal amount) {}
