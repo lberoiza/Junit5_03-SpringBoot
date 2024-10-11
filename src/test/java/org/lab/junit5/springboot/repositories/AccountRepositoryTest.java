@@ -2,6 +2,7 @@ package org.lab.junit5.springboot.repositories;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,6 +64,35 @@ class AccountRepositoryTest {
     List<Account> allAccountsFromDB = accountRepository.findAll();
     savedAccounts.add(savedAccount);
     assertThat(allAccountsFromDB).containsExactlyInAnyOrderElementsOf(savedAccounts);
+  }
+
+  @Test
+  void test_update_then_ok() {
+    Long accountId = savedAccount.getId();
+    BigDecimal newBalance = BigDecimal.valueOf(1000);
+    savedAccount.setBalance(newBalance);
+
+    Account updatedAccount = accountRepository.save(savedAccount);
+
+    assertThat(updatedAccount.getId()).isEqualTo(accountId);
+    assertThat(updatedAccount.getBalance()).isEqualTo(newBalance);
+  }
+
+  @Test
+  void test_deleteById_then_ok() {
+    Long accountId = savedAccount.getId();
+    accountRepository.deleteById(accountId);
+
+    assertThat(accountRepository.count()).isEqualTo(0);
+    assertThat(accountRepository.findById(accountId)).isEmpty();
+  }
+
+  @Test
+  void test_delete_then_ok() {
+    accountRepository.delete(savedAccount);
+
+    assertThat(accountRepository.count()).isEqualTo(0);
+    assertThat(accountRepository.findById(savedAccount.getId())).isEmpty();
   }
 
   private List<Account> addMoreAccounts() {
