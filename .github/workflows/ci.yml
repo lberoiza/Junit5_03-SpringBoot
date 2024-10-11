@@ -1,4 +1,4 @@
-name: Run Spring Boot Tests with PostgreSQL
+name: Run Spring Boot Tests with H2 Database
 
 on:
   push:
@@ -12,21 +12,6 @@ jobs:
   test-suite:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:15
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: dev_junit_mockito_springboot
-        options: >-
-          --health-cmd "pg_isready -U user"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -37,16 +22,5 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Wait for PostgreSQL to be ready
-        run: |
-          until pg_isready -h localhost -p 5432 -U user; do
-            echo "Waiting for PostgreSQL...";
-            sleep 5;
-          done
-
       - name: Build with Maven and Run Tests
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/dev_junit_mockito_springboot
-          SPRING_DATASOURCE_USERNAME: user
-          SPRING_DATASOURCE_PASSWORD: password
         run: mvn clean test
