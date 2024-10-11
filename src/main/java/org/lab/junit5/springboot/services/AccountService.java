@@ -1,6 +1,6 @@
 package org.lab.junit5.springboot.services;
 
-import org.lab.junit5.springboot.models.Account;
+import org.lab.junit5.springboot.models.entitites.Account;
 
 import java.math.BigDecimal;
 

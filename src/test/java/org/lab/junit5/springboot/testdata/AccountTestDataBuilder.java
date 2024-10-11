@@ -3,7 +3,7 @@ package org.lab.junit5.springboot.testdata;
 import lombok.AllArgsConstructor;
 import lombok.With;
 import net.datafaker.Faker;
-import org.lab.junit5.springboot.models.Account;
+import org.lab.junit5.springboot.models.entitites.Account;
 
 import java.math.BigDecimal;
 import java.util.Locale;

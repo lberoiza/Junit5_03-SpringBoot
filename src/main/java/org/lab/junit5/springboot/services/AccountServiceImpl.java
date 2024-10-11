@@ -3,7 +3,7 @@ package org.lab.junit5.springboot.services;
 import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import org.lab.junit5.springboot.exceptions.AccountNotFoundByIdException;
-import org.lab.junit5.springboot.models.Account;
+import org.lab.junit5.springboot.models.entitites.Account;
 import org.lab.junit5.springboot.repositories.AccountRepository;
 import org.springframework.stereotype.Service;
 

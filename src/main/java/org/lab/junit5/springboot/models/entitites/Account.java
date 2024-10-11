@@ -1,4 +1,4 @@
-package org.lab.junit5.springboot.models;
+package org.lab.junit5.springboot.models.entitites;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;

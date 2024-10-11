@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.lab.junit5.springboot.models.Account;
+import org.lab.junit5.springboot.models.entitites.Account;
 import org.lab.junit5.springboot.testdata.AccountTestDataBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;

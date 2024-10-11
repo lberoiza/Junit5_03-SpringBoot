@@ -4,7 +4,7 @@ import java.util.Locale;
 import lombok.AllArgsConstructor;
 import lombok.With;
 import net.datafaker.Faker;
-import org.lab.junit5.springboot.models.Bank;
+import org.lab.junit5.springboot.models.entitites.Bank;
 
 @With
 @AllArgsConstructor
