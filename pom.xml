@@ -32,6 +32,7 @@
     <version.datafaker>2.3.1</version.datafaker>
     <version.assertj>3.26.3</version.assertj>
     <version.postgresql>42.7.3</version.postgresql>
+    <version.swagger>2.1.0</version.swagger>
   </properties>
 
   <dependencies>
@@ -94,6 +95,13 @@
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
       <scope>test</scope>
+    </dependency>
+
+    <!-- Instala Spring Docs y swagger-ui -->
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+      <version>${version.swagger}</version>
     </dependency>
 
   </dependencies>
