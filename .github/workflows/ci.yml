@@ -49,4 +49,4 @@ jobs:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/dev_junit_mockito_springboot
           SPRING_DATASOURCE_USERNAME: user
           SPRING_DATASOURCE_PASSWORD: password
-        run: mvn clean install
+        run: mvn clean test
