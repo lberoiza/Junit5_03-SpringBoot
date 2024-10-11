@@ -26,7 +26,7 @@ public class Account {
       nullable = false,
       precision = 10,
       scale = 2,
-      columnDefinition = "DECIMAL(10,2) DEFAULT 0.00")
+      columnDefinition = "DECIMAL(20,2) DEFAULT 0.00")
   private BigDecimal balance;
 
   public void deposit(BigDecimal amount) {
