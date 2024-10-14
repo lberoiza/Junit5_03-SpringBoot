@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.lab.junit5.springboot.exceptions.AccountNotFoundByNumberException;
 import org.lab.junit5.springboot.models.dtos.TransferDetailDTO;
@@ -85,6 +87,28 @@ class AccountControllerTest {
         .andExpect(jsonPath("$.date").value(LocalDate.now().toString()))
         .andExpect(jsonPath("$.data.sourceAccountId").value(transferDetailDTO.sourceAccountId()))
         .andExpect(jsonPath("$.data.targetAccountId").value(transferDetailDTO.targetAccountId()));
+  }
+
+  @Test
+  void transfer_source_account_has_enough_money_then_ok_check_whole_json() throws Exception {
+    TransferDetailDTO transferDetailDTO = new TransferDetailDTO(1L, 2L, 1L, BigDecimal.ONE);
+
+    Map<String, Object> response = new HashMap<>();
+    response.put("message", "Transfer successful");
+    response.put("status", "ok");
+    response.put("date", LocalDate.now().toString());
+    response.put("data", transferDetailDTO);
+
+    String url = CONTROLLER_PATH + "/transfer";
+
+    mockMvc
+        .perform(
+            post(url)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(transferDetailDTO)))
+        .andExpect(status().isOk())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(content().json(objectMapper.writeValueAsString(response)));
   }
 
   @Test
