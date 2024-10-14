@@ -238,6 +238,22 @@ class AccountServiceTest {
     verify(accountRepository).save(account);
   }
 
+  @Test
+  void find_account_by_account_number_then_account() {
+    Account expectedAccount = AccountTestDataBuilder.random().build();
+
+    when(accountRepository.findByAccountNumber(expectedAccount.getAccountNumber()))
+        .thenReturn(Optional.of(expectedAccount));
+
+    Account foundedAccount =
+        accountService.findAccountByAccountNumber(expectedAccount.getAccountNumber());
+
+    assertThat(foundedAccount).isNotNull();
+    assertThat(foundedAccount).isEqualTo(expectedAccount);
+
+    verify(accountRepository).findByAccountNumber(expectedAccount.getAccountNumber());
+  }
+
   private Account cloneAccount(Account account) {
     return new Account()
         .setId(account.getId())
