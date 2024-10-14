@@ -1,5 +1,7 @@
 package org.lab.junit5.springboot.controllers;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,12 +39,14 @@ public class AccountController {
   @PostMapping("/transfer")
   public ResponseEntity<Map<String, Object>> transfer(
       @RequestBody TransferDetailDTO transferDetailDTO) {
+    Map<String, Object> response = new HashMap<>();
 
-    if (transferDetailDTO == null) {
-      return ResponseEntity.badRequest().build();
+    if (transferDetailDTO.isNotValid()) {
+      response.put("status", "error");
+      response.put("message", "Transfer details are required");
+      return ResponseEntity.badRequest().body(response);
     }
 
-    Map<String, Object> response = new HashMap<>();
     try {
       accountService.transfer(
           transferDetailDTO.sourceAccountId(),
@@ -67,7 +71,15 @@ public class AccountController {
   public ResponseEntity<Account> createAccount(@RequestBody Account account) {
     return Optional.of(account)
         .map(accountService::save)
-        .map(ResponseEntity::ok)
+        .map(
+            savedAccount -> {
+              try {
+                URI location = new URI("/accounts/" + savedAccount.getId());
+                return ResponseEntity.created(location).body(savedAccount);
+              } catch (URISyntaxException e) {
+                return null;
+              }
+            })
         .orElse(ResponseEntity.badRequest().build());
   }
 
