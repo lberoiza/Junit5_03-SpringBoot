@@ -29,7 +29,7 @@ class AccountControllerTest {
 
   @MockBean private AccountService accountService;
 
-  private ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
   void getAccountByAccountNumber_should_find_account_then_ok_and_account_details()
