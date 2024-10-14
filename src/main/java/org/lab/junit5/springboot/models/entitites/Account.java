@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import lombok.Data;
 import lombok.experimental.Accessors;
-import org.lab.junit5.springboot.exceptions.InsufficientMoneyException;
+import org.lab.junit5.springboot.exceptions.AccountInsufficientMoneyException;
 
 @Data
 @Accessors(chain = true)
@@ -36,7 +36,7 @@ public class Account {
   public void withdraw(BigDecimal amount) {
     BigDecimal newBalance = balance.subtract(amount);
     if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
-      throw new InsufficientMoneyException(this, amount);
+      throw new AccountInsufficientMoneyException(this, amount);
     }
     balance = balance.subtract(amount);
   }

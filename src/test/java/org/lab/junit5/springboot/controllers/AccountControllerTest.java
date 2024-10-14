@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.lab.junit5.springboot.exceptions.AccountInsufficientMoneyException;
 import org.lab.junit5.springboot.exceptions.AccountNotFoundByNumberException;
 import org.lab.junit5.springboot.models.dtos.TransferDetailDTO;
 import org.lab.junit5.springboot.models.entitites.Account;
@@ -109,6 +110,42 @@ class AccountControllerTest {
         .andExpect(status().isOk())
         .andExpect(content().contentType(MediaType.APPLICATION_JSON))
         .andExpect(content().json(objectMapper.writeValueAsString(response)));
+  }
+
+  @Test
+  void transfer_source_account_has_not_enough_money_then_InsufficientMoneyException()
+      throws Exception {
+    Account sourceAccount = AccountTestDataBuilder.random().build();
+    TransferDetailDTO transferDetailDTO =
+        new TransferDetailDTO(
+            sourceAccount.getId(), 2L, 1L, sourceAccount.getBalance().multiply(BigDecimal.TEN));
+
+    doThrow(new AccountInsufficientMoneyException(sourceAccount, transferDetailDTO.amount()))
+        .when(accountService)
+        .transfer(
+            transferDetailDTO.sourceAccountId(),
+            transferDetailDTO.targetAccountId(),
+            transferDetailDTO.amount(),
+            transferDetailDTO.bankId());
+
+    String url = CONTROLLER_PATH + "/transfer";
+
+    mockMvc
+        .perform(
+            post(url)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(transferDetailDTO)))
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value("error"))
+        .andExpect(
+            jsonPath("$.message")
+                .value(
+                    "Insufficient money in account nr: %s. Current balance: %.2f, requested amount: %.2f"
+                        .formatted(
+                            sourceAccount.getAccountNumber(),
+                            sourceAccount.getBalance(),
+                            transferDetailDTO.amount())));
   }
 
   @Test

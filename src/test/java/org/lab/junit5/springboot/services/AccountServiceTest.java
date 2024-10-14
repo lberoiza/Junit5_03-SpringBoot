@@ -10,7 +10,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.lab.junit5.springboot.exceptions.AccountException;
-import org.lab.junit5.springboot.exceptions.InsufficientMoneyException;
+import org.lab.junit5.springboot.exceptions.AccountInsufficientMoneyException;
 import org.lab.junit5.springboot.models.entitites.Account;
 import org.lab.junit5.springboot.models.entitites.Bank;
 import org.lab.junit5.springboot.repositories.AccountRepository;
@@ -67,7 +67,7 @@ class AccountServiceTest {
                     targetAccount.getId(),
                     initialSourceAccountBalance.multiply(BigDecimal.TWO),
                     bank.getId()))
-        .isExactlyInstanceOf(InsufficientMoneyException.class)
+        .isExactlyInstanceOf(AccountInsufficientMoneyException.class)
         .withMessageContaining(
             getExceptionMessage(
                 sourceAccount, initialSourceAccountBalance.multiply(BigDecimal.TWO)));
