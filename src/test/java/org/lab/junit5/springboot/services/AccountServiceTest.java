@@ -208,4 +208,41 @@ class AccountServiceTest {
     inOrder.verify(accountRepository).findById(targetAccount.getId());
     inOrder.verify(bankRepository).findById(bank.getId());
   }
+
+  @Test
+  void save_account() {
+    Long generatedId = 1L;
+    Account account = AccountTestDataBuilder.random().withId(null).build();
+
+    // Cuando modificas el objeto que se pasa como argumento dentro de la simulación de la
+    // llamada (en tu caso, dentro de doAnswer o then), Mockito cree que el argumento que se pasó a
+    // la función es el mismo que luego fue modificado. Por lo tanto, al hacer una verificación con
+    // verify(), esperará que el objeto pasado a la función sea el que tiene los valores
+    // modificados, no el original.
+    // Por ejemplo, si llamas a save(account) y luego modificas el account dentro de la
+    // simulación (como asignarle un ID), entonces Mockito pensará que el argumento pasado fue el
+    // objeto modificado, y al usar verify(), esperará que le pases el objeto modificado, no el
+    // original.
+    when(accountRepository.save(any(Account.class)))
+        .then(
+            invocation -> {
+              Account accountToSave = invocation.getArgument(0);
+              return cloneAccount(accountToSave).setId(generatedId);
+            });
+
+    Account savedAccount = accountService.save(account);
+
+    assertThat(savedAccount).isNotNull();
+    assertThat(savedAccount.getId()).isEqualTo(generatedId);
+
+    verify(accountRepository).save(account);
+  }
+
+  private Account cloneAccount(Account account) {
+    return new Account()
+        .setId(account.getId())
+        .setAccountNumber(account.getAccountNumber())
+        .setOwner(account.getOwner())
+        .setBalance(account.getBalance());
+  }
 }
