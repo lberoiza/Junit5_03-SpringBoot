@@ -1,12 +1,16 @@
 package org.lab.junit5.springboot.controllers;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.lab.junit5.springboot.exceptions.AccountNotFoundByNumberException;
+import org.lab.junit5.springboot.models.dtos.TransferDetailDTO;
 import org.lab.junit5.springboot.models.entitites.Account;
 import org.lab.junit5.springboot.services.AccountService;
 import org.lab.junit5.springboot.testdata.AccountTestDataBuilder;
@@ -24,6 +28,8 @@ class AccountControllerTest {
   @Autowired private MockMvc mockMvc;
 
   @MockBean private AccountService accountService;
+
+  private ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
   void getAccountByAccountNumber_should_find_account_then_ok_and_account_details()
@@ -59,8 +65,27 @@ class AccountControllerTest {
     verify(accountService, times(1)).findAccountByAccountNumber(testAccountNumber);
   }
 
+  // Interesante, no es necesario hacer un mock del metodo transferir porque es void y no devuelve
+  // nada
   @Test
-  void transfer() {}
+  void transfer_source_account_has_enough_money_then_ok() throws Exception {
+    TransferDetailDTO transferDetailDTO = new TransferDetailDTO(1L, 2L, 1L, BigDecimal.ONE);
+
+    String url = CONTROLLER_PATH + "/transfer";
+
+    mockMvc
+        .perform(
+            post(url)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(transferDetailDTO)))
+        .andExpect(status().isOk())
+        .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.message").value("Transfer successful"))
+        .andExpect(jsonPath("$.status").value("ok"))
+        .andExpect(jsonPath("$.date").value(LocalDate.now().toString()))
+        .andExpect(jsonPath("$.data.sourceAccountId").value(transferDetailDTO.sourceAccountId()))
+        .andExpect(jsonPath("$.data.targetAccountId").value(transferDetailDTO.targetAccountId()));
+  }
 
   @Test
   void createAccount() {}
