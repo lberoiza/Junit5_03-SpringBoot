@@ -1,8 +1,7 @@
 package org.lab.junit5.springboot.controllers;
 
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -221,7 +220,7 @@ class AccountControllerTest {
   @Nested
   class CreateAccountTest {
     @Test
-    void creation_ok_then_account_with_id() throws Exception {
+    void return_account_with_id() throws Exception {
       Long generatedId = 5L;
       Account requestAccount = AccountTestDataBuilder.random().withId(null).build();
 
@@ -251,7 +250,29 @@ class AccountControllerTest {
   }
 
   @Nested
-  class updateAccountTest {}
+  class updateAccountTest {
+    @Test
+    void return_account() throws Exception {
+      Account requestAccount = AccountTestDataBuilder.random().build();
+
+      when(accountService.save(requestAccount)).thenReturn(requestAccount);
+
+      String url = CONTROLLER_PATH + "/update";
+      mockMvc
+          .perform(
+              put(url)
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(objectMapper.writeValueAsString(requestAccount)))
+          .andExpect(status().isOk())
+          .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+          .andExpect(jsonPath("$.id").value(requestAccount.getId()))
+          .andExpect(jsonPath("$.accountNumber").value(requestAccount.getAccountNumber()))
+          .andExpect(jsonPath("$.owner").value(requestAccount.getOwner()))
+          .andExpect(jsonPath("$.balance").value(requestAccount.getBalance()));
+
+      verify(accountService, times(1)).save(requestAccount);
+    }
+  }
 
   private Account cloneAccount(Account account) {
     return new Account()
