@@ -1,6 +1,7 @@
 package org.lab.junit5.springboot.services;
 
 import java.math.BigDecimal;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import org.lab.junit5.springboot.exceptions.AccountNotFoundByIdException;
 import org.lab.junit5.springboot.exceptions.AccountNotFoundByNumberException;
@@ -15,6 +16,11 @@ public class AccountServiceImpl implements AccountService {
 
   private final AccountRepository accountRepository;
   private final BankService bankService;
+
+  @Override
+  public List<Account> findAllAccounts() {
+    return accountRepository.findAll();
+  }
 
   @Override
   @Transactional(readOnly = true)

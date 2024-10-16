@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,6 +43,22 @@ class AccountServiceTest {
 
     sourceAccount = AccountTestDataBuilder.random().build();
     targetAccount = AccountTestDataBuilder.random().build();
+  }
+
+  @Test
+  void findAll_then_List_with_accounts() {
+    List<Account> expectedAccounts =
+        List.of(AccountTestDataBuilder.random().build(), AccountTestDataBuilder.random().build());
+
+    when(accountRepository.findAll()).thenReturn(expectedAccounts);
+
+    List<Account> foundedAccountList = accountService.findAllAccounts();
+
+    assertThat(foundedAccountList).isNotEmpty();
+    assertThat(foundedAccountList).hasSize(expectedAccounts.size());
+    assertThat(foundedAccountList).containsExactlyInAnyOrderElementsOf(expectedAccounts);
+
+    verify(accountRepository, times(1)).findAll();
   }
 
   @Test
