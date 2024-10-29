@@ -2,9 +2,10 @@ package org.lab.junit5.springboot.controllers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -42,31 +43,56 @@ class AccountControllerWebTestClientTest {
       TransferDetailDTO transferDetailDTO = new TransferDetailDTO(1L, 2L, 1L, BigDecimal.ONE);
       Map<String, Object> expectedResponse = createResponseMap(transferDetailDTO);
 
-      webTestClient
-          .post()
-          .uri(URL_PATH + "/transfer")
-          .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue(transferDetailDTO)
-          .exchange() // Realiza la llamada y lo que venga despues será la respuesta
-          .expectStatus()
-          .isOk()
-          .expectBody()
-          .jsonPath("$.message")
-          .isNotEmpty()
-          .jsonPath("$.message")
-          .value(is("Transfer successful"))
-          // otra forma isequalTo
-          .jsonPath("$.data.sourceAccountId")
-          .isEqualTo(transferDetailDTO.sourceAccountId())
-          // otra forma lambda
-          .jsonPath("$.data.targetAccountId")
-          .value(
-              value -> assertThat(value).isEqualTo(transferDetailDTO.targetAccountId().intValue()))
-          // usando isEqualTo
-          .jsonPath("$.date")
-          .isEqualTo(LocalDate.now().toString())
-          .json(objectMapper.writeValueAsString(expectedResponse));
+      WebTestClient.BodyContentSpec bodyContentSpec =
+          webTestClient
+              .post()
+              .uri(URL_PATH + "/transfer")
+              .contentType(MediaType.APPLICATION_JSON)
+              .bodyValue(transferDetailDTO)
+              .exchange() // Realiza la llamada y lo que venga despues será la respuesta
+              .expectStatus()
+              .isOk()
+              .expectBody();
+
+      // Usando JsonPath para validar la respuesta
+      assertWithJsonPath(bodyContentSpec, transferDetailDTO);
+
+      // Probando el Json completo de la respuesta
+      bodyContentSpec.json(objectMapper.writeValueAsString(expectedResponse));
+
+      // probando el consumeWith
+      assertConsumeWith(bodyContentSpec);
     }
+  }
+
+  private void assertConsumeWith(WebTestClient.BodyContentSpec bodyContentSpec) {
+    bodyContentSpec.consumeWith(
+        response -> {
+          try {
+            JsonNode jsonNode = objectMapper.readTree(response.getResponseBody());
+            assertThat(jsonNode.path("message").asText()).isEqualTo("Transfer successful");
+            assertThat(jsonNode.path("date").asText()).isEqualTo(LocalDate.now().toString());
+            assertThat(jsonNode.path("data").path("amount").asText())
+                .isEqualTo(BigDecimal.ONE.toString());
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
+  }
+
+  private void assertWithJsonPath(
+      WebTestClient.BodyContentSpec bodyContentSpec, TransferDetailDTO transferDetailDTO) {
+    bodyContentSpec
+        .jsonPath("$.message")
+        .isNotEmpty()
+        .jsonPath("$.message")
+        .value(is("Transfer successful"))
+        .jsonPath("$.data.sourceAccountId")
+        .isEqualTo(transferDetailDTO.sourceAccountId())
+        .jsonPath("$.data.targetAccountId")
+        .value(value -> assertThat(value).isEqualTo(transferDetailDTO.targetAccountId().intValue()))
+        .jsonPath("$.date")
+        .isEqualTo(LocalDate.now().toString());
   }
 
   private Map<String, Object> createResponseMap(TransferDetailDTO transferDetailDTO) {
