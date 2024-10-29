@@ -7,8 +7,8 @@ import java.sql.Connection;
 import java.sql.Statement;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.Resource;
@@ -17,11 +17,12 @@ import org.springframework.core.io.support.ResourcePatternResolver;
 @Profile("test")
 @Configuration
 @Slf4j
+@RequiredArgsConstructor
 public class ProfileTestConfiguration {
 
-  @Autowired private DataSource dataSource;
+  private final DataSource dataSource;
 
-  @Autowired private ResourcePatternResolver resourcePatternResolver;
+  private final ResourcePatternResolver resourcePatternResolver;
 
   @PostConstruct
   public void loadTestData() {
