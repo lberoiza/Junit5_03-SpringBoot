@@ -104,6 +104,14 @@
       <version>${version.swagger}</version>
     </dependency>
 
+    <!-- Se va a utilizar Webclient para poder hacer pruebas de integracion
+         es por eso que se utilizará solo en el scope de test -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webflux</artifactId>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
 
   <build>
