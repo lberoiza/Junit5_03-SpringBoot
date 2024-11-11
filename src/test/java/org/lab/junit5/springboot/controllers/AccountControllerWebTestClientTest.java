@@ -13,7 +13,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.lab.junit5.springboot.models.dtos.TransferDetailDTO;
-import org.lab.junit5.springboot.services.AccountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -32,8 +31,6 @@ class AccountControllerWebTestClientTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   @Autowired private WebTestClient webTestClient;
-
-  @Autowired private AccountService accountService;
 
   @Nested
   class TransferTests {
@@ -58,7 +55,10 @@ class AccountControllerWebTestClientTest {
       assertWithJsonPath(bodyContentSpec, transferDetailDTO);
 
       // Probando el Json completo de la respuesta
+      // 1.- Usando un Map y convritiendolo a JSON
       bodyContentSpec.json(objectMapper.writeValueAsString(expectedResponse));
+      // 2.- Usando un String con el JSON
+      bodyContentSpec.json(createResponseAsJsonString(transferDetailDTO));
 
       // probando el consumeWith
       assertConsumeWith(bodyContentSpec);
@@ -102,5 +102,29 @@ class AccountControllerWebTestClientTest {
     response.put("date", LocalDate.now().toString());
     response.put("data", transferDetailDTO);
     return response;
+  }
+
+  private String createResponseAsJsonString(TransferDetailDTO transferDetailDTO) {
+    String jsonResponse =
+        """
+      {
+        "message": "Transfer successful",
+        "status": "ok",
+        "date": "%s",
+        "data": {
+          "sourceAccountId": %d,
+          "targetAccountId": %d,
+          "bankId": %d,
+          "amount": %s
+        }
+      }
+      """;
+
+    return jsonResponse.formatted(
+        LocalDate.now().toString(),
+        transferDetailDTO.sourceAccountId(),
+        transferDetailDTO.targetAccountId(),
+        transferDetailDTO.bankId(),
+        transferDetailDTO.amount());
   }
 }
