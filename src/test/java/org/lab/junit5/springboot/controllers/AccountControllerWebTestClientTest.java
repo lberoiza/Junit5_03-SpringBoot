@@ -49,6 +49,8 @@ class AccountControllerWebTestClientTest {
               .exchange() // Realiza la llamada y lo que venga despues será la respuesta
               .expectStatus()
               .isOk()
+              .expectHeader()
+              .contentType(MediaType.APPLICATION_JSON)
               .expectBody();
 
       // Usando JsonPath para validar la respuesta
