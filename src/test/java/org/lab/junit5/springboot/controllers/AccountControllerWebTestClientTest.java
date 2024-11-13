@@ -3,16 +3,19 @@ package org.lab.junit5.springboot.controllers;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.lab.junit5.springboot.models.dtos.TransferDetailDTO;
+import org.lab.junit5.springboot.models.entitites.Account;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -64,6 +67,70 @@ class AccountControllerWebTestClientTest {
 
       // probando el consumeWith
       assertConsumeWith(bodyContentSpec);
+    }
+  }
+
+  @Nested
+  class Details {
+
+    @Test
+    void get_account_by_account_number_account_1_then_ok() throws JsonProcessingException {
+      Account expectedAccount =
+          new Account()
+              .setId(1L)
+              .setAccountNumber("123456")
+              .setBalance(BigDecimal.valueOf(1000))
+              .setOwner("Juan Perez");
+
+      webTestClient
+          .get()
+          .uri(URL_PATH + "/123456")
+          .exchange()
+          .expectStatus()
+          .isOk()
+          .expectHeader()
+          .contentType(MediaType.APPLICATION_JSON)
+          .expectBody()
+          .jsonPath("$.id")
+          .isEqualTo(expectedAccount.getId())
+          .jsonPath("$.accountNumber")
+          .isEqualTo(expectedAccount.getAccountNumber())
+          .jsonPath("$.balance")
+          .isEqualTo(expectedAccount.getBalance().intValue())
+          .jsonPath("$.owner")
+          .isEqualTo(expectedAccount.getOwner())
+          .json(objectMapper.writeValueAsString(expectedAccount));
+    }
+
+    @Test
+    void get_account_by_account_number_account_2_then_ok() throws JsonProcessingException {
+      Account expectedAccount =
+          new Account()
+              .setId(2L)
+              .setAccountNumber("654321")
+              .setBalance(BigDecimal.valueOf(2000))
+              .setOwner("Maria Lopez");
+
+      webTestClient
+          .get()
+          .uri(URL_PATH + "/" + expectedAccount.getAccountNumber())
+          .exchange()
+          .expectStatus()
+          .isOk()
+          .expectHeader()
+          .contentType(MediaType.APPLICATION_JSON)
+          .expectBody(Account.class)
+          .consumeWith(
+              response -> {
+                Account account = response.getResponseBody();
+                assertThat(account).isNotNull();
+                assertThat(account.getId()).isEqualTo(expectedAccount.getId());
+                assertThat(account.getAccountNumber())
+                    .isEqualTo(expectedAccount.getAccountNumber());
+                assertThat(account.getBalance().setScale(2, RoundingMode.HALF_UP))
+                    .isEqualTo(expectedAccount.getBalance().setScale(2, RoundingMode.HALF_UP));
+                assertThat(account.getOwner()).isEqualTo(expectedAccount.getOwner());
+              });
     }
   }
 
