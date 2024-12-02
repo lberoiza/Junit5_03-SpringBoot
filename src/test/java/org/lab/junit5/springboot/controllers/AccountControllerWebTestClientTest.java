@@ -348,7 +348,7 @@ class AccountControllerWebTestClientTest {
             assertThat(account1.getId()).isEqualTo(3L);
             assertThat(account1.getAccountNumber()).isEqualTo(newAccount.getAccountNumber());
             assertThat(account1.getOwner()).isEqualTo(newAccount.getOwner());
-            assertThat(account1.getBalance())
+            assertThat(account1.getBalance().setScale(2, RoundingMode.HALF_UP))
                 .isEqualTo(newAccount.getBalance().setScale(2, RoundingMode.HALF_UP));
           });
     }
