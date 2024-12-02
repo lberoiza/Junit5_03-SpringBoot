@@ -18,4 +18,6 @@ public interface AccountService {
   BigDecimal getBalance(Long accountId);
 
   void transfer(Long fromAccountId, Long toAccountId, BigDecimal amount, Long bankId);
+
+  void delete(Long accountId);
 }

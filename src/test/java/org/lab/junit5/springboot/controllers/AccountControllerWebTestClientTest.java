@@ -293,7 +293,7 @@ class AccountControllerWebTestClientTest {
     private final Account newAccount = AccountTestDataBuilder.random().withId(null).build();
 
     @Test
-    void get_all_accounts_then_ok_json_path() {
+    void then_ok_json_path() {
       WebTestClient.ResponseSpec responseSpec =
           webTestClient
               .post()
@@ -323,7 +323,7 @@ class AccountControllerWebTestClientTest {
     }
 
     @Test
-    void get_all_accounts_then_ok_consume_with() {
+    void then_ok_consume_with() {
       WebTestClient.ResponseSpec responseSpec =
           webTestClient
               .post()
@@ -351,6 +351,49 @@ class AccountControllerWebTestClientTest {
             assertThat(account1.getBalance().setScale(2, RoundingMode.HALF_UP))
                 .isEqualTo(newAccount.getBalance().setScale(2, RoundingMode.HALF_UP));
           });
+    }
+  }
+
+  @Nested
+  class Delete {
+
+    @Test
+    void get_all_accounts_then_ok_json_path() {
+      assertCountAccounts(2);
+
+      webTestClient
+          .delete()
+          .uri(URL_PATH + "/1")
+          .exchange()
+          .expectStatus()
+          .isNoContent()
+          .expectBody()
+          .isEmpty();
+
+      assertCountAccounts(1);
+
+      // como tenemos implementado el manejo de excepciones en el controlador, no se lanza una
+      // excepción 500
+      // se lanza una excepción 404
+      webTestClient.get().uri(URL_PATH + "/1").exchange().expectStatus().isNotFound();
+
+      // si no tenemos implementado el manejo de excepciones en el controlador, se lanza una
+      // excepción 500
+      // webTestClient.get().uri(URL_PATH + "/1").exchange().expectStatus().is5xxServerError();
+
+    }
+
+    private void assertCountAccounts(int expectedCount) {
+      webTestClient
+          .get()
+          .uri(URL_PATH)
+          .exchange()
+          .expectHeader()
+          .contentType(MediaType.APPLICATION_JSON)
+          .expectStatus()
+          .isOk()
+          .expectBodyList(Account.class)
+          .hasSize(expectedCount);
     }
   }
 }

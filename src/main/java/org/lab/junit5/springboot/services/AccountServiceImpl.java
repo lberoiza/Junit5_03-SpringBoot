@@ -64,4 +64,9 @@ public class AccountServiceImpl implements AccountService {
     save(targetAccount);
     bankService.updateTotalOfTransactions(bankId);
   }
+
+  @Override
+  public void delete(Long accountId) {
+    accountRepository.deleteById(accountId);
+  }
 }

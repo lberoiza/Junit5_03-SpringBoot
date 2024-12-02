@@ -96,4 +96,10 @@ public class AccountController {
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.badRequest().build());
   }
+
+  @DeleteMapping("/{accountId}")
+  public ResponseEntity<Account> deleteAccount(@PathVariable Long accountId) {
+    accountService.delete(accountId);
+    return ResponseEntity.noContent().build();
+  }
 }
