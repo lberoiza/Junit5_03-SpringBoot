@@ -13,10 +13,12 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.lab.junit5.springboot.models.dtos.TransferDetailDTO;
 import org.lab.junit5.springboot.models.entitites.Account;
+import org.lab.junit5.springboot.testdata.AccountTestDataBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -168,7 +170,7 @@ class AccountControllerWebTestClientTest {
     }
 
     @Test
-    void get_account_by_account_number_account_2_then_ok() throws JsonProcessingException {
+    void get_account_by_account_number_account_2_then_ok() {
       Account expectedAccount =
           new Account()
               .setId(2L)
@@ -228,12 +230,16 @@ class AccountControllerWebTestClientTest {
           .isEqualTo(123456)
           .jsonPath("$.[0].owner")
           .isEqualTo("Juan Perez")
+          .jsonPath("$.[0].balance")
+          .isEqualTo(1000)
           .jsonPath("$.[1].id")
           .isEqualTo(2)
           .jsonPath("$.[1].accountNumber")
           .isEqualTo(654321)
           .jsonPath("$.[1].owner")
-          .isEqualTo("Maria Lopez");
+          .isEqualTo("Maria Lopez")
+          .jsonPath("$.[1].balance")
+          .isEqualTo(2000);
     }
 
     @Test
@@ -258,8 +264,9 @@ class AccountControllerWebTestClientTest {
           .value(hasSize(2)) // matcher
           .consumeWith(
               response -> {
-                Account account1 = response.getResponseBody().get(0);
+                Account account1 = Objects.requireNonNull(response.getResponseBody()).getFirst();
                 assertThat(account1).isNotNull();
+                assertThat(account1.getId()).isEqualTo(1);
                 assertThat(account1.getAccountNumber()).isEqualTo("123456");
                 assertThat(account1.getOwner()).isEqualTo("Juan Perez");
                 assertThat(account1.getBalance())
@@ -267,6 +274,7 @@ class AccountControllerWebTestClientTest {
 
                 Account account2 = response.getResponseBody().get(1);
                 assertThat(account2).isNotNull();
+                assertThat(account2.getId()).isEqualTo(2);
                 assertThat(account2.getAccountNumber()).isEqualTo("654321");
                 assertThat(account2.getOwner()).isEqualTo("Maria Lopez");
                 assertThat(account2.getBalance())
@@ -276,6 +284,73 @@ class AccountControllerWebTestClientTest {
                     .extracting(Account::getAccountNumber)
                     .containsExactlyInAnyOrder("123456", "654321");
               });
+    }
+  }
+
+  @Nested
+  class Save {
+
+    private final Account newAccount = AccountTestDataBuilder.random().withId(null).build();
+
+    @Test
+    void get_all_accounts_then_ok_json_path() {
+      WebTestClient.ResponseSpec responseSpec =
+          webTestClient
+              .post()
+              .uri(URL_PATH + "/create")
+              .contentType(MediaType.APPLICATION_JSON)
+              .bodyValue(newAccount)
+              .exchange()
+              .expectStatus()
+              .isCreated()
+              .expectHeader()
+              .contentType(MediaType.APPLICATION_JSON);
+
+      // 1.- Usando JsonPath
+      assertWithJsonPath(responseSpec.expectBody());
+    }
+
+    private void assertWithJsonPath(WebTestClient.BodyContentSpec bodyContentSpec) {
+      bodyContentSpec
+          .jsonPath("$.id")
+          .isEqualTo(3L)
+          .jsonPath("$.accountNumber")
+          .isEqualTo(newAccount.getAccountNumber())
+          .jsonPath("$.owner")
+          .isEqualTo(newAccount.getOwner())
+          .jsonPath("$.balance")
+          .isEqualTo(newAccount.getBalance().intValue());
+    }
+
+    @Test
+    void get_all_accounts_then_ok_consume_with() {
+      WebTestClient.ResponseSpec responseSpec =
+          webTestClient
+              .post()
+              .uri(URL_PATH + "/create")
+              .contentType(MediaType.APPLICATION_JSON)
+              .bodyValue(newAccount)
+              .exchange()
+              .expectStatus()
+              .isCreated()
+              .expectHeader()
+              .contentType(MediaType.APPLICATION_JSON);
+
+      // 2.- Usando consumeWith
+      assertConsumeWith(responseSpec.expectBody(Account.class));
+    }
+
+    private void assertConsumeWith(WebTestClient.BodySpec<Account, ?> bodySpec) {
+      bodySpec.consumeWith(
+          response -> {
+            Account account1 = response.getResponseBody();
+            assertThat(account1).isNotNull();
+            assertThat(account1.getId()).isEqualTo(3L);
+            assertThat(account1.getAccountNumber()).isEqualTo(newAccount.getAccountNumber());
+            assertThat(account1.getOwner()).isEqualTo(newAccount.getOwner());
+            assertThat(account1.getBalance())
+                .isEqualTo(newAccount.getBalance().setScale(2, RoundingMode.HALF_UP));
+          });
     }
   }
 }
