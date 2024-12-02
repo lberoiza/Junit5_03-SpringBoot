@@ -1,6 +1,7 @@
 package org.lab.junit5.springboot.controllers;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -67,6 +68,70 @@ class AccountControllerWebTestClientTest {
 
       // 3.- probando el consumeWith
       assertConsumeWith(bodyContentSpec);
+    }
+
+    private void assertWithJsonPath(
+        WebTestClient.BodyContentSpec bodyContentSpec, TransferDetailDTO transferDetailDTO) {
+      bodyContentSpec
+          .jsonPath("$.message")
+          .isNotEmpty()
+          .jsonPath("$.message")
+          .value(is("Transfer successful"))
+          .jsonPath("$.data.sourceAccountId")
+          .isEqualTo(transferDetailDTO.sourceAccountId())
+          .jsonPath("$.data.targetAccountId")
+          .value(
+              value -> assertThat(value).isEqualTo(transferDetailDTO.targetAccountId().intValue()))
+          .jsonPath("$.date")
+          .isEqualTo(LocalDate.now().toString());
+    }
+
+    private Map<String, Object> createResponseMap(TransferDetailDTO transferDetailDTO) {
+      Map<String, Object> response = new HashMap<>();
+      response.put("message", "Transfer successful");
+      response.put("status", "ok");
+      response.put("date", LocalDate.now().toString());
+      response.put("data", transferDetailDTO);
+      return response;
+    }
+
+    private String createResponseAsJsonString(TransferDetailDTO transferDetailDTO) {
+      String jsonResponse =
+          """
+            {
+              "message": "Transfer successful",
+              "status": "ok",
+              "date": "%s",
+              "data": {
+                "sourceAccountId": %d,
+                "targetAccountId": %d,
+                "bankId": %d,
+                "amount": %s
+              }
+            }
+            """;
+
+      return jsonResponse.formatted(
+          LocalDate.now().toString(),
+          transferDetailDTO.sourceAccountId(),
+          transferDetailDTO.targetAccountId(),
+          transferDetailDTO.bankId(),
+          transferDetailDTO.amount());
+    }
+
+    private void assertConsumeWith(WebTestClient.BodyContentSpec bodyContentSpec) {
+      bodyContentSpec.consumeWith(
+          response -> {
+            try {
+              JsonNode jsonNode = objectMapper.readTree(response.getResponseBody());
+              assertThat(jsonNode.path("message").asText()).isEqualTo("Transfer successful");
+              assertThat(jsonNode.path("date").asText()).isEqualTo(LocalDate.now().toString());
+              assertThat(jsonNode.path("data").path("amount").asText())
+                  .isEqualTo(BigDecimal.ONE.toString());
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
+          });
     }
   }
 
@@ -136,66 +201,81 @@ class AccountControllerWebTestClientTest {
     }
   }
 
-  private void assertConsumeWith(WebTestClient.BodyContentSpec bodyContentSpec) {
-    bodyContentSpec.consumeWith(
-        response -> {
-          try {
-            JsonNode jsonNode = objectMapper.readTree(response.getResponseBody());
-            assertThat(jsonNode.path("message").asText()).isEqualTo("Transfer successful");
-            assertThat(jsonNode.path("date").asText()).isEqualTo(LocalDate.now().toString());
-            assertThat(jsonNode.path("data").path("amount").asText())
-                .isEqualTo(BigDecimal.ONE.toString());
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
-        });
-  }
+  @Nested
+  class List {
 
-  private void assertWithJsonPath(
-      WebTestClient.BodyContentSpec bodyContentSpec, TransferDetailDTO transferDetailDTO) {
-    bodyContentSpec
-        .jsonPath("$.message")
-        .isNotEmpty()
-        .jsonPath("$.message")
-        .value(is("Transfer successful"))
-        .jsonPath("$.data.sourceAccountId")
-        .isEqualTo(transferDetailDTO.sourceAccountId())
-        .jsonPath("$.data.targetAccountId")
-        .value(value -> assertThat(value).isEqualTo(transferDetailDTO.targetAccountId().intValue()))
-        .jsonPath("$.date")
-        .isEqualTo(LocalDate.now().toString());
-  }
+    @Test
+    void get_all_accounts_then_ok_json_path() {
+      WebTestClient.ResponseSpec responseSpec =
+          webTestClient
+              .get()
+              .uri(URL_PATH)
+              .exchange()
+              .expectStatus()
+              .isOk()
+              .expectHeader()
+              .contentType(MediaType.APPLICATION_JSON);
 
-  private Map<String, Object> createResponseMap(TransferDetailDTO transferDetailDTO) {
-    Map<String, Object> response = new HashMap<>();
-    response.put("message", "Transfer successful");
-    response.put("status", "ok");
-    response.put("date", LocalDate.now().toString());
-    response.put("data", transferDetailDTO);
-    return response;
-  }
+      // 1.- Usando JsonPath
+      assertWithJsonPath(responseSpec.expectBody());
+    }
 
-  private String createResponseAsJsonString(TransferDetailDTO transferDetailDTO) {
-    String jsonResponse =
-        """
-      {
-        "message": "Transfer successful",
-        "status": "ok",
-        "date": "%s",
-        "data": {
-          "sourceAccountId": %d,
-          "targetAccountId": %d,
-          "bankId": %d,
-          "amount": %s
-        }
-      }
-      """;
+    private void assertWithJsonPath(WebTestClient.BodyContentSpec bodyContentSpec) {
+      bodyContentSpec
+          .jsonPath("$.[0].id")
+          .isEqualTo(1)
+          .jsonPath("$.[0].accountNumber")
+          .isEqualTo(123456)
+          .jsonPath("$.[0].owner")
+          .isEqualTo("Juan Perez")
+          .jsonPath("$.[1].id")
+          .isEqualTo(2)
+          .jsonPath("$.[1].accountNumber")
+          .isEqualTo(654321)
+          .jsonPath("$.[1].owner")
+          .isEqualTo("Maria Lopez");
+    }
 
-    return jsonResponse.formatted(
-        LocalDate.now().toString(),
-        transferDetailDTO.sourceAccountId(),
-        transferDetailDTO.targetAccountId(),
-        transferDetailDTO.bankId(),
-        transferDetailDTO.amount());
+    @Test
+    void get_all_accounts_then_ok_consume_with() {
+      WebTestClient.ResponseSpec responseSpec =
+          webTestClient
+              .get()
+              .uri(URL_PATH)
+              .exchange()
+              .expectStatus()
+              .isOk()
+              .expectHeader()
+              .contentType(MediaType.APPLICATION_JSON);
+
+      // 2.- Usando consumeWith
+      assertConsumeWith(responseSpec.expectBodyList(Account.class));
+    }
+
+    private void assertConsumeWith(WebTestClient.ListBodySpec<Account> accountListBodySpec) {
+      accountListBodySpec
+          .hasSize(2)
+          .value(hasSize(2)) // matcher
+          .consumeWith(
+              response -> {
+                Account account1 = response.getResponseBody().get(0);
+                assertThat(account1).isNotNull();
+                assertThat(account1.getAccountNumber()).isEqualTo("123456");
+                assertThat(account1.getOwner()).isEqualTo("Juan Perez");
+                assertThat(account1.getBalance())
+                    .isEqualTo(BigDecimal.valueOf(1000).setScale(2, RoundingMode.HALF_UP));
+
+                Account account2 = response.getResponseBody().get(1);
+                assertThat(account2).isNotNull();
+                assertThat(account2.getAccountNumber()).isEqualTo("654321");
+                assertThat(account2.getOwner()).isEqualTo("Maria Lopez");
+                assertThat(account2.getBalance())
+                    .isEqualTo(BigDecimal.valueOf(2000).setScale(2, RoundingMode.HALF_UP));
+
+                assertThat(response.getResponseBody())
+                    .extracting(Account::getAccountNumber)
+                    .containsExactlyInAnyOrder("123456", "654321");
+              });
+    }
   }
 }
