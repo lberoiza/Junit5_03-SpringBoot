@@ -4,6 +4,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.lab.junit5.springboot.exceptions.AccountException;
@@ -25,6 +26,11 @@ public class AccountController {
   @Autowired
   public AccountController(AccountService accountService) {
     this.accountService = accountService;
+  }
+
+  @GetMapping
+  public ResponseEntity<List<Account>> getAllAccounts() {
+    return ResponseEntity.ok(accountService.findAllAccounts());
   }
 
   @GetMapping("/{accountNumber}")
