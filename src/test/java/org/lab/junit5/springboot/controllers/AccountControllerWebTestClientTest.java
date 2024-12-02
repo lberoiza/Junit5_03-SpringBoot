@@ -39,7 +39,7 @@ class AccountControllerWebTestClientTest {
   class TransferTests {
 
     @Test
-    void source_account_has_enough_money_then_ok() throws Exception {
+    void source_account_has_enough_money_then_ok_expectBody() throws Exception {
       TransferDetailDTO transferDetailDTO = new TransferDetailDTO(1L, 2L, 1L, BigDecimal.ONE);
       Map<String, Object> expectedResponse = createResponseMap(transferDetailDTO);
 
@@ -56,16 +56,16 @@ class AccountControllerWebTestClientTest {
               .contentType(MediaType.APPLICATION_JSON)
               .expectBody();
 
-      // Usando JsonPath para validar la respuesta
+      // 1.- Usando JsonPath para validar la respuesta
       assertWithJsonPath(bodyContentSpec, transferDetailDTO);
 
-      // Probando el Json completo de la respuesta
-      // 1.- Usando un Map y convritiendolo a JSON
+      // 2.- Probando el Json completo de la respuesta
+      // a.- Usando un Map y convritiendolo a JSON
       bodyContentSpec.json(objectMapper.writeValueAsString(expectedResponse));
-      // 2.- Usando un String con el JSON
+      // b.- Usando un String con el JSON
       bodyContentSpec.json(createResponseAsJsonString(transferDetailDTO));
 
-      // probando el consumeWith
+      // 3.- probando el consumeWith
       assertConsumeWith(bodyContentSpec);
     }
   }
@@ -119,6 +119,8 @@ class AccountControllerWebTestClientTest {
           .isOk()
           .expectHeader()
           .contentType(MediaType.APPLICATION_JSON)
+
+          // Expected Body con Tipo de dato
           .expectBody(Account.class)
           .consumeWith(
               response -> {
