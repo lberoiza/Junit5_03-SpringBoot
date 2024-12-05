@@ -106,7 +106,7 @@ class AccountControllerTestRestTemplateTest {
     void expected_error_Insufficient_money() {
       // Given
       TransferDetailDTO transferDetailDTO =
-          new TransferDetailDTO(1L, 2L, 1L, BigDecimal.valueOf(9999));
+          new TransferDetailDTO(1L, 2L, 1L, BigDecimal.valueOf(9999.00));
 
       // When
       var response =
@@ -118,7 +118,8 @@ class AccountControllerTestRestTemplateTest {
       assertThat(response.getBody().get("status")).isEqualTo("error");
       assertThat(response.getBody().get("message"))
           .isEqualTo(
-              "Insufficient money in account nr: 123456. Current balance: 1000,00, requested amount: 9999,00");
+              "Insufficient money in account nr: %s. Current balance: %.2f, requested amount: %.2f"
+                  .formatted("123456", 1000.00, 9999.00));
     }
   }
 }
