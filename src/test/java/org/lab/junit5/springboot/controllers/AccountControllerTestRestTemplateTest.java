@@ -47,9 +47,11 @@ class AccountControllerTestRestTemplateTest {
   }
 
   @Nested
+  @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
   class Transfer {
 
     @Test
+    @Order(1)
     void test_as_map() {
       // Given
       TransferDetailDTO transferDetailDTO = new TransferDetailDTO(1L, 2L, 1L, BigDecimal.TEN);
@@ -81,6 +83,7 @@ class AccountControllerTestRestTemplateTest {
     }
 
     @Test
+    @Order(2)
     void test_as_json() throws JsonProcessingException {
       // Given
       TransferDetailDTO transferDetailDTO = new TransferDetailDTO(1L, 2L, 1L, BigDecimal.TEN);
@@ -103,6 +106,7 @@ class AccountControllerTestRestTemplateTest {
     }
 
     @Test
+    @Order(3)
     void expected_error_Insufficient_money() {
       // Given
       TransferDetailDTO transferDetailDTO =
@@ -122,4 +126,8 @@ class AccountControllerTestRestTemplateTest {
                   .formatted("123456", 1000.00, 9999.00));
     }
   }
+
+  @Nested
+  @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+  class Details {}
 }
