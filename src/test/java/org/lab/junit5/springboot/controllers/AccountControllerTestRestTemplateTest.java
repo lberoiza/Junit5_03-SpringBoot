@@ -6,11 +6,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.*;
 import org.lab.junit5.springboot.models.dtos.TransferDetailDTO;
+import org.lab.junit5.springboot.models.entitites.Account;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -20,7 +24,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.jdbc.Sql;
 
-@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@TestClassOrder(ClassOrderer.OrderAnnotation.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Sql(scripts = "/testdata/data-test.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 @Sql(
@@ -48,6 +52,7 @@ class AccountControllerTestRestTemplateTest {
 
   @Nested
   @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+  @Order(1)
   class Transfer {
 
     @Test
@@ -128,6 +133,93 @@ class AccountControllerTestRestTemplateTest {
   }
 
   @Nested
+  @Order(2)
   @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-  class Details {}
+  class Details {
+
+    @Test
+    @Order(1)
+    void test_find_by_id() {
+      // Given
+      Account expectedAccount =
+          new Account()
+              .setId(1L)
+              .setAccountNumber("123456")
+              .setOwner("Juan Perez")
+              .setBalance(BigDecimal.valueOf(1000.00).setScale(2, RoundingMode.HALF_UP));
+
+      // When
+      ResponseEntity<Account> response =
+          restTemplateClient.getForEntity(
+              URL_PATH + "/" + expectedAccount.getAccountNumber(), Account.class);
+
+      // Then
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+      Account account = response.getBody();
+
+      // Prueba campo por campo
+      assertThat(account).isNotNull();
+      assertThat(account.getId()).isEqualTo(expectedAccount.getId());
+      assertThat(account.getAccountNumber()).isEqualTo(expectedAccount.getAccountNumber());
+      assertThat(account.getOwner()).isEqualTo(expectedAccount.getOwner());
+      assertThat(account.getBalance().setScale(2, RoundingMode.HALF_UP))
+          .isEqualTo(expectedAccount.getBalance().setScale(2, RoundingMode.HALF_UP));
+
+      // Prueba completa de igualdad de objetos
+      assertThat(account).isEqualTo(expectedAccount);
+    }
+
+    @Test
+    void test_find_all() throws JsonProcessingException {
+      // When
+      ResponseEntity<Account[]> response =
+          restTemplateClient.getForEntity(URL_PATH, Account[].class);
+
+      // Then
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+
+      assertThat(response.getBody()).isNotNull();
+
+      // Prueba de lista de cuentas
+      List<Account> accounts = Arrays.asList(response.getBody());
+      assertAccountList(accounts);
+
+      // prueba la lista usando JsonNode
+      JsonNode jsonNode = objectMapper.readTree(objectMapper.writeValueAsString(accounts));
+      assertAccountJsonNode(jsonNode);
+    }
+
+    private void assertAccountJsonNode(JsonNode jsonNode) {
+      assertThat(jsonNode.isArray()).isTrue();
+      assertThat(jsonNode.size()).isEqualTo(2);
+
+      assertThat(jsonNode.get(0).path("id").asLong()).isEqualTo(1L);
+      assertThat(jsonNode.get(0).path("accountNumber").asText()).isEqualTo("123456");
+      assertThat(jsonNode.get(0).path("owner").asText()).isEqualTo("Juan Perez");
+      assertThat(jsonNode.get(0).path("balance").asDouble()).isEqualTo(1000.00);
+
+      assertThat(jsonNode.get(1).path("id").asLong()).isEqualTo(2L);
+      assertThat(jsonNode.get(1).path("accountNumber").asText()).isEqualTo("654321");
+      assertThat(jsonNode.get(1).path("owner").asText()).isEqualTo("Maria Lopez");
+      assertThat(jsonNode.get(1).path("balance").asDouble()).isEqualTo(2000.00);
+    }
+
+    private void assertAccountList(List<Account> accounts) {
+      assertThat(accounts).isNotNull().isNotEmpty().hasSize(2);
+
+      assertThat(accounts.getFirst().getId()).isEqualTo(1L);
+      assertThat(accounts.getFirst().getAccountNumber()).isEqualTo("123456");
+      assertThat(accounts.getFirst().getOwner()).isEqualTo("Juan Perez");
+      assertThat(accounts.getFirst().getBalance().setScale(2, RoundingMode.HALF_UP))
+          .isEqualTo(BigDecimal.valueOf(1000.00).setScale(2, RoundingMode.HALF_UP));
+
+      assertThat(accounts.getLast().getId()).isEqualTo(2L);
+      assertThat(accounts.getLast().getAccountNumber()).isEqualTo("654321");
+      assertThat(accounts.getLast().getOwner()).isEqualTo("Maria Lopez");
+      assertThat(accounts.getLast().getBalance().setScale(2, RoundingMode.HALF_UP))
+          .isEqualTo(BigDecimal.valueOf(2000.00).setScale(2, RoundingMode.HALF_UP));
+    }
+  }
 }
