@@ -9,16 +9,19 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.*;
 import org.lab.junit5.springboot.models.dtos.TransferDetailDTO;
 import org.lab.junit5.springboot.models.entitites.Account;
+import org.lab.junit5.springboot.testdata.AccountTestDataBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -171,6 +174,7 @@ class AccountControllerTestRestTemplateTest {
     }
 
     @Test
+    @Order(2)
     void test_find_all() throws JsonProcessingException {
       // When
       ResponseEntity<Account[]> response =
@@ -220,6 +224,109 @@ class AccountControllerTestRestTemplateTest {
       assertThat(accounts.getLast().getOwner()).isEqualTo("Maria Lopez");
       assertThat(accounts.getLast().getBalance().setScale(2, RoundingMode.HALF_UP))
           .isEqualTo(BigDecimal.valueOf(2000.00).setScale(2, RoundingMode.HALF_UP));
+    }
+  }
+
+  @Nested
+  @Order(3)
+  @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+  class Save {
+
+    @Test
+    @Order(1)
+    void should_save_an_account() {
+      // Given
+      Account newAccount = AccountTestDataBuilder.random().build();
+
+      // When
+      ResponseEntity<Account> response =
+          restTemplateClient.postForEntity(URL_PATH + "/create", newAccount, Account.class);
+
+      // Then
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+      assertThat(response.getBody()).isNotNull();
+
+      // Testing the saved account
+      Account savedAccount = response.getBody();
+      assertThat(savedAccount.getId()).isNotNull().isEqualTo(3L);
+      assertThat(savedAccount.getAccountNumber()).isEqualTo(newAccount.getAccountNumber());
+      assertThat(savedAccount.getOwner()).isEqualTo(newAccount.getOwner());
+      assertThat(savedAccount.getBalance()).isEqualTo(newAccount.getBalance());
+    }
+  }
+
+  @Nested
+  @Order(4)
+  @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+  class Delete {
+
+    @Test
+    @Order(1)
+    void should_delete_an_account() {
+      // Given
+      Account accountToDelete =
+          new Account()
+              .setId(1L)
+              .setAccountNumber("123456")
+              .setOwner("Juan Perez")
+              .setBalance(BigDecimal.valueOf(1000.00).setScale(2, RoundingMode.HALF_UP));
+
+      // Verifica la cantidad inicial de cuentas
+      assertCountAccounts(2);
+
+      // When
+
+      // Option 1: Usa delete con URL pero no retorna nada
+      //      restTemplateClient.delete(URL_PATH + "/" + accountToDelete.getId());
+
+      // Option 2: Usa delete con URL y retorna un ResponseEntity
+      // el url debe contener el path variable {accountId}
+      // el nombre debe ser igual al del controlador
+      ResponseEntity<Void> responseDelete =
+          restTemplateClient.exchange(
+              URL_PATH + "/{accountId}",
+              HttpMethod.DELETE,
+              // cuerpo de la petición los header, que pueden personalizarse usando HttpHeaders
+              null,
+              // tipo de retorno
+              Void.class,
+              // mapa con los valores de las variables de la URL
+              Collections.singletonMap("accountId", accountToDelete.getId()));
+
+      // Then
+
+      assertThat(responseDelete.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+      assertThat(responseDelete.getBody()).isNull();
+
+      // Verifica la cantidad de cuentas después de la eliminación
+      assertCountAccounts(1);
+
+      // como tenemos implementado el manejo de excepciones en el controlador, no se lanza una
+      // excepción 500
+      // se lanza una excepción 404
+      ResponseEntity<Account> response =
+          restTemplateClient.getForEntity(
+              URL_PATH + "/" + accountToDelete.getAccountNumber(), Account.class);
+
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+      assertThat(response.getBody()).isNull();
+    }
+
+    private void assertCountAccounts(int expectedCount) {
+      // When
+      ResponseEntity<Account[]> response =
+          restTemplateClient.getForEntity(URL_PATH, Account[].class);
+
+      // Then
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+      assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+
+      assertThat(response.getBody()).isNotNull();
+
+      // Prueba de lista de cuentas
+      List<Account> accounts = Arrays.asList(response.getBody());
+      assertThat(accounts).isNotNull().isNotEmpty().hasSize(expectedCount);
     }
   }
 }
