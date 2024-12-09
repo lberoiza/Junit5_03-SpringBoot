@@ -27,16 +27,25 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.jdbc.Sql;
 
+// Al ejecutar los test de integracion en clases anidadas, los cambios se revierten despues de que
+// la clase anidada termina, por lo que los cambios, (las transacciones, depositos de dinero) no se
+// reflejan en los otras clases lo mismo pasa al agregar o eliminar cuentas.
+
 @TestClassOrder(ClassOrderer.OrderAnnotation.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Sql(scripts = "/testdata/data-test.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+@Sql(
+    scripts = {"/testdata/data-test-cleaner.sql", "/testdata/data-test.sql"},
+    executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 @Sql(
     scripts = "/testdata/data-test-cleaner.sql",
-    executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
+    executionPhase = Sql.ExecutionPhase.AFTER_TEST_CLASS)
 class AccountControllerTestRestTemplateTest {
 
   private static final String URL_PATH = "/api/accounts";
-  private static ObjectMapper objectMapper = new ObjectMapper();
+  private static final ObjectMapper objectMapper = new ObjectMapper();
+  private static final BigDecimal TRANSFER_AMOUNT = BigDecimal.TEN;
+  private static final BigDecimal START_AMOUNT_ACCOUNT_1 = BigDecimal.valueOf(1000);
+  private static final BigDecimal START_AMOUNT_ACCOUNT_2 = BigDecimal.valueOf(2000);
 
   @Autowired private TestRestTemplate restTemplateClient;
 
@@ -56,13 +65,13 @@ class AccountControllerTestRestTemplateTest {
   @Nested
   @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
   @Order(1)
-  class Transfer {
+  class TransferTest {
 
     @Test
     @Order(1)
     void test_as_map() {
       // Given
-      TransferDetailDTO transferDetailDTO = new TransferDetailDTO(1L, 2L, 1L, BigDecimal.TEN);
+      TransferDetailDTO transferDetailDTO = new TransferDetailDTO(1L, 2L, 1L, TRANSFER_AMOUNT);
 
       // When
       ResponseEntity<Map> response =
@@ -85,7 +94,9 @@ class AccountControllerTestRestTemplateTest {
           .isEqualTo(LocalDate.now().toString());
       softly.assertThat(((Map) response.getBody().get("data")).get("sourceAccountId")).isEqualTo(1);
       softly.assertThat(((Map) response.getBody().get("data")).get("targetAccountId")).isEqualTo(2);
-      softly.assertThat(((Map) response.getBody().get("data")).get("amount")).isEqualTo(10);
+      softly
+          .assertThat(((Map) response.getBody().get("data")).get("amount"))
+          .isEqualTo(TRANSFER_AMOUNT.intValue());
 
       softly.assertAll();
     }
@@ -94,7 +105,7 @@ class AccountControllerTestRestTemplateTest {
     @Order(2)
     void test_as_json() throws JsonProcessingException {
       // Given
-      TransferDetailDTO transferDetailDTO = new TransferDetailDTO(1L, 2L, 1L, BigDecimal.TEN);
+      TransferDetailDTO transferDetailDTO = new TransferDetailDTO(1L, 2L, 1L, TRANSFER_AMOUNT);
 
       // When
       ResponseEntity<String> response =
@@ -110,15 +121,17 @@ class AccountControllerTestRestTemplateTest {
       assertThat(jsonNode.path("date").asText()).isNotNull().isEqualTo(LocalDate.now().toString());
       assertThat(jsonNode.path("data").path("sourceAccountId").asLong()).isEqualTo(1);
       assertThat(jsonNode.path("data").path("targetAccountId").asLong()).isEqualTo(2);
-      assertThat(jsonNode.path("data").path("amount").asDouble()).isEqualTo(10);
+      assertThat(jsonNode.path("data").path("amount").asDouble())
+          .isEqualTo(TRANSFER_AMOUNT.doubleValue());
     }
 
     @Test
     @Order(3)
     void expected_error_Insufficient_money() {
+      BigDecimal expenseAmount = BigDecimal.valueOf(9999.00);
+
       // Given
-      TransferDetailDTO transferDetailDTO =
-          new TransferDetailDTO(1L, 2L, 1L, BigDecimal.valueOf(9999.00));
+      TransferDetailDTO transferDetailDTO = new TransferDetailDTO(1L, 2L, 1L, expenseAmount);
 
       // When
       var response =
@@ -131,14 +144,17 @@ class AccountControllerTestRestTemplateTest {
       assertThat(response.getBody().get("message"))
           .isEqualTo(
               "Insufficient money in account nr: %s. Current balance: %.2f, requested amount: %.2f"
-                  .formatted("123456", 1000.00, 9999.00));
+                  .formatted(
+                      "123456",
+                      START_AMOUNT_ACCOUNT_1.subtract(TRANSFER_AMOUNT.multiply(BigDecimal.TWO)),
+                      expenseAmount));
     }
   }
 
   @Nested
   @Order(2)
   @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-  class Details {
+  class DetailTest {
 
     @Test
     @Order(1)
@@ -154,7 +170,7 @@ class AccountControllerTestRestTemplateTest {
       // When
       ResponseEntity<Account> response =
           restTemplateClient.getForEntity(
-              URL_PATH + "/" + expectedAccount.getAccountNumber(), Account.class);
+              createUri("/" + expectedAccount.getAccountNumber()), Account.class);
 
       // Then
       assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -202,12 +218,14 @@ class AccountControllerTestRestTemplateTest {
       assertThat(jsonNode.get(0).path("id").asLong()).isEqualTo(1L);
       assertThat(jsonNode.get(0).path("accountNumber").asText()).isEqualTo("123456");
       assertThat(jsonNode.get(0).path("owner").asText()).isEqualTo("Juan Perez");
-      assertThat(jsonNode.get(0).path("balance").asDouble()).isEqualTo(1000.00);
+      assertThat(jsonNode.get(0).path("balance").asDouble())
+          .isEqualTo(START_AMOUNT_ACCOUNT_1.doubleValue());
 
       assertThat(jsonNode.get(1).path("id").asLong()).isEqualTo(2L);
       assertThat(jsonNode.get(1).path("accountNumber").asText()).isEqualTo("654321");
       assertThat(jsonNode.get(1).path("owner").asText()).isEqualTo("Maria Lopez");
-      assertThat(jsonNode.get(1).path("balance").asDouble()).isEqualTo(2000.00);
+      assertThat(jsonNode.get(1).path("balance").asDouble())
+          .isEqualTo(START_AMOUNT_ACCOUNT_2.doubleValue());
     }
 
     private void assertAccountList(List<Account> accounts) {
@@ -217,20 +235,20 @@ class AccountControllerTestRestTemplateTest {
       assertThat(accounts.getFirst().getAccountNumber()).isEqualTo("123456");
       assertThat(accounts.getFirst().getOwner()).isEqualTo("Juan Perez");
       assertThat(accounts.getFirst().getBalance().setScale(2, RoundingMode.HALF_UP))
-          .isEqualTo(BigDecimal.valueOf(1000.00).setScale(2, RoundingMode.HALF_UP));
+          .isEqualTo(START_AMOUNT_ACCOUNT_1.setScale(2, RoundingMode.HALF_UP));
 
       assertThat(accounts.getLast().getId()).isEqualTo(2L);
       assertThat(accounts.getLast().getAccountNumber()).isEqualTo("654321");
       assertThat(accounts.getLast().getOwner()).isEqualTo("Maria Lopez");
       assertThat(accounts.getLast().getBalance().setScale(2, RoundingMode.HALF_UP))
-          .isEqualTo(BigDecimal.valueOf(2000.00).setScale(2, RoundingMode.HALF_UP));
+          .isEqualTo(START_AMOUNT_ACCOUNT_2.setScale(2, RoundingMode.HALF_UP));
     }
   }
 
   @Nested
   @Order(3)
   @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-  class Save {
+  class SaveTests {
 
     @Test
     @Order(1)
@@ -259,7 +277,7 @@ class AccountControllerTestRestTemplateTest {
   @Nested
   @Order(4)
   @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-  class Delete {
+  class DeleteTests {
 
     @Test
     @Order(1)
@@ -270,7 +288,7 @@ class AccountControllerTestRestTemplateTest {
               .setId(1L)
               .setAccountNumber("123456")
               .setOwner("Juan Perez")
-              .setBalance(BigDecimal.valueOf(1000.00).setScale(2, RoundingMode.HALF_UP));
+              .setBalance(START_AMOUNT_ACCOUNT_1.setScale(2, RoundingMode.HALF_UP));
 
       // Verifica la cantidad inicial de cuentas
       assertCountAccounts(2);

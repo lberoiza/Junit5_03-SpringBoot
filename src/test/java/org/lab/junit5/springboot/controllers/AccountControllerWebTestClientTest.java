@@ -14,8 +14,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.lab.junit5.springboot.models.dtos.TransferDetailDTO;
 import org.lab.junit5.springboot.models.entitites.Account;
 import org.lab.junit5.springboot.testdata.AccountTestDataBuilder;
@@ -26,24 +25,45 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 // WebTestClient es un Wrapper de WebClient que permite realizar pruebas de integración
+
+// @SpringBootTest: Crea un contexto de Spring para realizar pruebas de integración
+// webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT: Levanta el servidor en un puerto
+// aleatorio
+// @Sql: Permite ejecutar scripts SQL antes y después de la clase de prueba
+// executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS: Se ejecuta antes de la clase de prueba
+// executionPhase = Sql.ExecutionPhase.AFTER_TEST_CLASS: Se ejecuta después de la clase de prueba
+
+// Al ejecutar los test de integracion en clases anidadas, los cambios se revierten despues de que
+// la clase anidada termina, por lo que los cambios, (las transacciones, depositos de dinero) no se
+// reflejan en los otras clases lo mismo pasa al agregar o eliminar cuentas.
+
+@TestClassOrder(ClassOrderer.OrderAnnotation.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Sql(scripts = "/testdata/data-test.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+@Sql(
+    scripts = {"/testdata/data-test-cleaner.sql", "/testdata/data-test.sql"},
+    executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 @Sql(
     scripts = "/testdata/data-test-cleaner.sql",
-    executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
+    executionPhase = Sql.ExecutionPhase.AFTER_TEST_CLASS)
 class AccountControllerWebTestClientTest {
 
   private static final String URL_PATH = "/api/accounts";
   private static final ObjectMapper objectMapper = new ObjectMapper();
+  private static final BigDecimal TRANSFER_AMOUNT = BigDecimal.TEN;
+  private static final BigDecimal START_AMOUNT_ACCOUNT_1 = BigDecimal.valueOf(1000);
+  private static final BigDecimal START_AMOUNT_ACCOUNT_2 = BigDecimal.valueOf(2000);
 
   @Autowired private WebTestClient webTestClient;
 
   @Nested
+  @Order(1)
+  @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
   class TransferTests {
 
     @Test
+    @Order(1)
     void source_account_has_enough_money_then_ok_expectBody() throws Exception {
-      TransferDetailDTO transferDetailDTO = new TransferDetailDTO(1L, 2L, 1L, BigDecimal.ONE);
+      TransferDetailDTO transferDetailDTO = new TransferDetailDTO(1L, 2L, 1L, TRANSFER_AMOUNT);
       Map<String, Object> expectedResponse = createResponseMap(transferDetailDTO);
 
       WebTestClient.BodyContentSpec bodyContentSpec =
@@ -63,7 +83,7 @@ class AccountControllerWebTestClientTest {
       assertWithJsonPath(bodyContentSpec, transferDetailDTO);
 
       // 2.- Probando el Json completo de la respuesta
-      // a.- Usando un Map y convritiendolo a JSON
+      // a.- Usando un Map y convirtiendolo a JSON
       bodyContentSpec.json(objectMapper.writeValueAsString(expectedResponse));
       // b.- Usando un String con el JSON
       bodyContentSpec.json(createResponseAsJsonString(transferDetailDTO));
@@ -129,7 +149,7 @@ class AccountControllerWebTestClientTest {
               assertThat(jsonNode.path("message").asText()).isEqualTo("Transfer successful");
               assertThat(jsonNode.path("date").asText()).isEqualTo(LocalDate.now().toString());
               assertThat(jsonNode.path("data").path("amount").asText())
-                  .isEqualTo(BigDecimal.ONE.toString());
+                  .isEqualTo(TRANSFER_AMOUNT.toString());
             } catch (IOException e) {
               throw new RuntimeException(e);
             }
@@ -138,15 +158,18 @@ class AccountControllerWebTestClientTest {
   }
 
   @Nested
-  class Details {
+  @Order(2)
+  @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+  class DetailTests {
 
     @Test
+    @Order(1)
     void get_account_by_account_number_account_1_then_ok() throws JsonProcessingException {
       Account expectedAccount =
           new Account()
               .setId(1L)
               .setAccountNumber("123456")
-              .setBalance(BigDecimal.valueOf(1000))
+              .setBalance(START_AMOUNT_ACCOUNT_1)
               .setOwner("Juan Perez");
 
       webTestClient
@@ -170,12 +193,13 @@ class AccountControllerWebTestClientTest {
     }
 
     @Test
+    @Order(2)
     void get_account_by_account_number_account_2_then_ok() {
       Account expectedAccount =
           new Account()
               .setId(2L)
               .setAccountNumber("654321")
-              .setBalance(BigDecimal.valueOf(2000))
+              .setBalance(START_AMOUNT_ACCOUNT_2)
               .setOwner("Maria Lopez");
 
       webTestClient
@@ -204,9 +228,12 @@ class AccountControllerWebTestClientTest {
   }
 
   @Nested
+  @Order(3)
+  @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
   class List {
 
     @Test
+    @Order(1)
     void get_all_accounts_then_ok_json_path() {
       WebTestClient.ResponseSpec responseSpec =
           webTestClient
@@ -231,7 +258,7 @@ class AccountControllerWebTestClientTest {
           .jsonPath("$.[0].owner")
           .isEqualTo("Juan Perez")
           .jsonPath("$.[0].balance")
-          .isEqualTo(1000)
+          .isEqualTo(START_AMOUNT_ACCOUNT_1.intValue())
           .jsonPath("$.[1].id")
           .isEqualTo(2)
           .jsonPath("$.[1].accountNumber")
@@ -239,10 +266,11 @@ class AccountControllerWebTestClientTest {
           .jsonPath("$.[1].owner")
           .isEqualTo("Maria Lopez")
           .jsonPath("$.[1].balance")
-          .isEqualTo(2000);
+          .isEqualTo(START_AMOUNT_ACCOUNT_2.intValue());
     }
 
     @Test
+    @Order(2)
     void get_all_accounts_then_ok_consume_with() {
       WebTestClient.ResponseSpec responseSpec =
           webTestClient
@@ -270,7 +298,7 @@ class AccountControllerWebTestClientTest {
                 assertThat(account1.getAccountNumber()).isEqualTo("123456");
                 assertThat(account1.getOwner()).isEqualTo("Juan Perez");
                 assertThat(account1.getBalance())
-                    .isEqualTo(BigDecimal.valueOf(1000).setScale(2, RoundingMode.HALF_UP));
+                    .isEqualTo(START_AMOUNT_ACCOUNT_1.setScale(2, RoundingMode.HALF_UP));
 
                 Account account2 = response.getResponseBody().get(1);
                 assertThat(account2).isNotNull();
@@ -278,7 +306,7 @@ class AccountControllerWebTestClientTest {
                 assertThat(account2.getAccountNumber()).isEqualTo("654321");
                 assertThat(account2.getOwner()).isEqualTo("Maria Lopez");
                 assertThat(account2.getBalance())
-                    .isEqualTo(BigDecimal.valueOf(2000).setScale(2, RoundingMode.HALF_UP));
+                    .isEqualTo(START_AMOUNT_ACCOUNT_2.setScale(2, RoundingMode.HALF_UP));
 
                 assertThat(response.getResponseBody())
                     .extracting(Account::getAccountNumber)
@@ -288,11 +316,14 @@ class AccountControllerWebTestClientTest {
   }
 
   @Nested
+  @Order(4)
+  @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
   class Save {
 
     private final Account newAccount = AccountTestDataBuilder.random().withId(null).build();
 
     @Test
+    @Order(1)
     void then_ok_json_path() {
       WebTestClient.ResponseSpec responseSpec =
           webTestClient
@@ -323,6 +354,7 @@ class AccountControllerWebTestClientTest {
     }
 
     @Test
+    @Order(2)
     void then_ok_consume_with() {
       WebTestClient.ResponseSpec responseSpec =
           webTestClient
@@ -345,7 +377,7 @@ class AccountControllerWebTestClientTest {
           response -> {
             Account account1 = response.getResponseBody();
             assertThat(account1).isNotNull();
-            assertThat(account1.getId()).isEqualTo(3L);
+            assertThat(account1.getId()).isEqualTo(4L);
             assertThat(account1.getAccountNumber()).isEqualTo(newAccount.getAccountNumber());
             assertThat(account1.getOwner()).isEqualTo(newAccount.getOwner());
             assertThat(account1.getBalance().setScale(2, RoundingMode.HALF_UP))
@@ -355,9 +387,12 @@ class AccountControllerWebTestClientTest {
   }
 
   @Nested
+  @Order(5)
+  @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
   class Delete {
 
     @Test
+    @Order(1)
     void get_all_accounts_then_ok_json_path() {
       assertCountAccounts(2);
 
